@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Forklift Simülasyonu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS Variables */
+        :root {
+            --deep-space-blue: #0D1117;
+            --night-purple: #18122B;
+            --neon-cyan: #00F5FF;
+            --energetic-magenta: #E600FF;
+            --near-white: #E6EDF3;
+            --light-gray: #8B949E;
+            --card-bg: rgba(22, 27, 34, 0.6);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --radius: 8px;
+            --shadow-soft: rgba(0, 0, 0, 0.3);
+            --shadow-medium: rgba(0, 0, 0, 0.4);
+            --shadow-glow: rgba(0, 245, 255, 0.2);
+        }
+
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            border-color: var(--card-border);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--deep-space-blue) 0%, var(--night-purple) 100%);
+            color: var(--near-white);
+            min-height: 100vh;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Exo 2', sans-serif;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--deep-space-blue) 0%, var(--night-purple) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .loading-text {
+            font-family: 'Exo 2', sans-serif;
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--neon-cyan);
+            text-align: center;
+            position: relative;
+            padding: 20px;
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        .loading-text::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            background: linear-gradient(45deg, transparent, var(--neon-cyan), transparent, var(--neon-cyan), transparent);
+            animation: borderRotate 3s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes glow {
+            0%, 100% {
+                text-shadow: 
+                    0 0 5px var(--neon-cyan),
+                    0 0 10px var(--neon-cyan),
+                    0 0 15px var(--neon-cyan),
+                    0 0 20px var(--neon-cyan);
+            }
+            50% {
+                text-shadow: 
+                    0 0 10px var(--neon-cyan),
+                    0 0 20px var(--neon-cyan),
+                    0 0 30px var(--neon-cyan),
+                    0 0 40px var(--neon-cyan);
+            }
+        }
+
+        @keyframes borderRotate {
+            0% {
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+            25% {
+                opacity: 0.8;
+            }
+            50% {
+                transform: rotate(180deg);
+                opacity: 0.6;
+            }
+            75% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: rotate(360deg);
+                opacity: 1;
+            }
+        }
+
+        .loading-screen.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 95vw;
+            margin: 20px auto;
+            padding: 16px;
+            opacity: 0;
+            transition: opacity 0.5s ease-in;
+        }
+
+        .container.loaded {
+            opacity: 1;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 3fr;
+            gap: 24px;
+            min-height: calc(100vh - 80px);
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+        }
+
+        /* Glass Card Effects */
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .glass-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Glass Panel Hover Effect from second HTML */
+        .glass-panel:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 8px 25px var(--shadow-medium),
+                0 4px 12px var(--shadow-soft),
+                0 0 15px var(--shadow-glow);
+        }
+
+        /* Control Panel */
+        .control-panel {
+            position: relative;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .panel-title {
+            color: var(--neon-cyan);
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toggle-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid var(--neon-cyan);
+            background: transparent;
+            color: var(--neon-cyan);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-btn:hover {
+            background: rgba(0, 245, 255, 0.1);
+            box-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
+        }
+
+        /* Modern Input Styles */
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-label {
+            display: block;
+            color: var(--light-gray);
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .modern-input {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: var(--near-white);
+            padding: 10px;
+            width: 100%;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .modern-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px var(--neon-cyan);
+            border-color: var(--neon-cyan);
+        }
+
+        .modern-input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Modern Button Styles */
+        .modern-button {
+            border-radius: var(--radius);
+            padding: 12px 20px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .btn-primary {
+            background: var(--neon-cyan);
+            color: var(--deep-space-blue);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--neon-cyan);
+            border: 2px solid var(--neon-cyan);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: rgba(0, 245, 255, 0.1);
+        }
+
+        /* Enhanced Reset Button with style from second HTML */
+        .btn-power {
+            background: linear-gradient(135deg, var(--energetic-magenta), #C21807);
+            color: var(--near-white);
+            border-radius: 10px;
+            padding: 14px 24px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            border: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(230, 0, 255, 0.3);
+        }
+
+        .btn-power::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 245, 255, 0.2), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .btn-power:hover::before {
+            left: 100%;
+        }
+
+        .btn-power:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(230, 0, 255, 0.5);
+        }
+
+        .modern-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Help Button */
+        .help-btn {
+            background: rgba(0, 245, 255, 0.1);
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .help-btn:hover {
+            background: rgba(0, 245, 255, 0.2);
+            box-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
+        }
+
+        /* Simulation Area */
+        .simulation-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .simulation-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .simulation-title {
+            color: var(--neon-cyan);
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .fullscreen-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 1px solid var(--neon-cyan);
+            background: rgba(0, 0, 0, 0.7);
+            color: var(--neon-cyan);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            font-size: 18px;
+            z-index: 10;
+        }
+
+        .fullscreen-btn:hover {
+            background: rgba(0, 245, 255, 0.1);
+            box-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
+        }
+
+        /* Canvas Container */
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .canvas-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .canvas-label {
+            color: var(--light-gray);
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            padding: 4px 12px;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        /* Enhanced Canvas with size and states from second HTML */
+        .forklift-canvas {
+            border: 2px solid var(--card-border);
+            border-radius: 12px;
+            background: rgba(13, 17, 23, 0.9);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 350px;
+            height: 300px;
+        }
+
+        .forklift-canvas:hover {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 15px rgba(0, 245, 255, 0.2);
+        }
+
+        /* Animation States from second HTML */
+        .running {
+            border-color: #22c55e !important;
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.5) !important;
+        }
+
+        .paused {
+            border-color: #eab308 !important;
+            box-shadow: 0 0 20px rgba(234, 179, 8, 0.5) !important;
+        }
+
+        .stopped {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.5) !important;
+        }
+
+        /* Timer */
+        .timer-display {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--neon-cyan);
+            font-family: 'Exo 2', sans-serif;
+            margin: 16px 0;
+            padding: 12px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+        }
+
+        /* Results Panel */
+        .results-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .result-section {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .section-title {
+            color: var(--neon-cyan);
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+
+        .progress-item {
+            margin-bottom: 12px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .progress-label-left {
+            color: var(--light-gray);
+        }
+
+        .progress-label-right {
+            color: var(--near-white);
+            font-weight: 600;
+        }
+
+        /* Enhanced Progress Bars with shimmer animation from second HTML */
+        .progress-bar {
+            height: 12px;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            position: relative;
+            border: 1px solid var(--card-border);
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        /* Shimmer animation from second HTML */
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .progress-energy-1 {
+            background: linear-gradient(90deg, var(--neon-cyan), #0088CC);
+        }
+
+        .progress-energy-2 {
+            background: linear-gradient(90deg, #33be7b, #228B22);
+        }
+
+        .progress-power-1 {
+            background: linear-gradient(90deg, var(--energetic-magenta), #BD56F7);
+        }
+
+        .progress-power-2 {
+            background: linear-gradient(90deg, #f7ae34, #FF8C00);
+        }
+
+        /* Formula Display */
+        .formula {
+            background: rgba(0, 245, 255, 0.1);
+            border: 1px solid rgba(0, 245, 255, 0.3);
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 12px;
+            color: var(--neon-cyan);
+            margin-bottom: 8px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease-out;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            max-width: 90vw;
+            max-height: 90vh;
+            width: 800px;
+            margin: 20px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+            animation: slideIn 0.3s ease-out;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 24px 24px 16px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            color: var(--neon-cyan);
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid var(--neon-cyan);
+            background: transparent;
+            color: var(--neon-cyan);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .modal-close:hover {
+            background: var(--neon-cyan);
+            color: var(--deep-space-blue);
+            box-shadow: 0 0 15px rgba(0, 245, 255, 0.5);
+            transform: scale(1.05);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+            line-height: 1.6;
+        }
+
+        .modal-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .modal-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+
+        .modal-section h3 {
+            color: var(--neon-cyan);
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+
+        .modal-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .modal-section li {
+            margin-bottom: 8px;
+            padding-left: 16px;
+            position: relative;
+        }
+
+        .modal-section li::before {
+            content: '▶';
+            color: var(--neon-cyan);
+            position: absolute;
+            left: 0;
+        }
+
+        /* Fullscreen Styles */
+        .simulation-container.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1000;
+            background: var(--deep-space-blue);
+            padding: 20px;
+        }
+
+        .simulation-container.fullscreen .glass-card {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .simulation-container.fullscreen .canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+
+.neon-text {
+    font-size: 3rem;
+	text-align : center;
+    color: #fff;
+    text-shadow: 0 0 5px #ff005e, 0 0 10px #ff005e, 0 0 20px #ff005e, 0 0 40px #ff005e, 0 0 80px #ff005e;
+    animation: glow 1.5s infinite alternate;
+}
+
+@keyframes glow {
+    0% {
+        text-shadow: 0 0 5px #ff005e, 0 0 10px #ff005e, 0 0 20px #ff005e, 0 0 40px #ff005e, 0 0 80px #ff005e;
+    }
+    100% {
+        text-shadow: 0 0 10px #00d4ff, 0 0 20px #00d4ff, 0 0 40px #00d4ff, 0 0 80px #00d4ff, 0 0 160px #00d4ff;
+    }
+}
+
+
+        .fullscreen-controls {
+            display: none;
+            position: fixed;
+            bottom: 35%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(22, 27, 34, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px;
+            z-index: 1100;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .simulation-container.fullscreen .fullscreen-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .fullscreen-controls .modern-button {
+            margin: 0;
+            padding: 8px 16px;
+            width: auto;
+        }
+
+        /* Collapsed Panel */
+        .control-panel-collapsed .parameters-section {
+            display: none;
+        }
+
+        .control-panel-collapsed .button-section {
+            text-align: center;
+        }
+
+        .control-panel-collapsed .button-section .modern-button {
+            max-width: 200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+		
+		@keyframes glow {
+    0% {
+        text-shadow: 0 0 5px #ff005e, 0 0 10px #ff005e, 0 0 20px #ff005e, 0 0 40px #ff005e, 0 0 80px #ff005e;
+    }
+    100% {
+        text-shadow: 0 0 10px #00d4ff, 0 0 20px #00d4ff, 0 0 40px #00d4ff, 0 0 80px #00d4ff, 0 0 160px #00d4ff;
+    }
+	
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 8px;
+            }
+            
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .canvas-container {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .results-container {
+                grid-template-columns: 1fr;
+            }
+
+            .fullscreen-controls {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .fullscreen-controls .modern-button {
+                width: 100%;
+            }
+
+            .forklift-canvas {
+                width: 100% !important;
+                max-width: 350px;
+            }
+
+            .loading-text {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="neon-text">
+            Simülasyon Yükleniyor
+        </div>
+    </div>
+
+    <div class="container" id="mainContainer">
+        <div class="main-grid">
+            <!-- Sol Panel - Kontrol Paneli -->
+            <div class="control-panel">
+                <div class="glass-card">
+                    <div class="panel-header">
+                        <h2 class="panel-title">
+                            ⚙️ Kontrol Paneli
+                        </h2>
+                        <button id="toggleControlPanel" class="toggle-btn" title="Paneli Daralt/Genişlet">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye-off"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" x2="22" y1="2" y2="22"></line></svg>
+                        </button>
+                    </div>
+                    
+                    <div id="controlPanelContent">
+                        <!-- Yardım Butonu -->
+                        <button class="help-btn" onclick="openModal()">
+                            ❓ Nasıl Kullanılır?
+                        </button>
+                        
+                        <!-- Parametre Bölümü -->
+                        <div class="parameters-section">
+                            <!-- 1. Forklift Parametreleri -->
+                            <div class="glass-panel">
+                                <div class="section-title">🦼 1. Forklift</div>
+                                <div class="input-group">
+                                    <label class="input-label" for="mass1">Kütle (kg)</label>
+                                    <input id="mass1" type="number" class="modern-input" value="1" min="0.1" step="0.1">
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label" for="g1">Yerçekimi İvmesi (m/s²)</label>
+                                    <input id="g1" type="number" class="modern-input" value="10" min="1" step="0.1">
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label" for="h1">Yükseklik (m)</label>
+                                    <input id="h1" type="number" class="modern-input" value="3" min="0.1" step="0.1">
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label" for="t1">Süre (s)</label>
+                                    <input id="t1" type="number" class="modern-input" value="20" min="1" step="0.1">
+                                </div>
+                            </div>
+                            
+                            <!-- 2. Forklift Parametreleri -->
+                            <div class="glass-panel">
+                                <div class="section-title">🦽 2. Forklift</div>
+                                <div class="input-group">
+                                    <label class="input-label" for="mass2">Kütle (kg)</label>
+                                    <input id="mass2" type="number" class="modern-input" value="1" min="0.1" step="0.1">
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label" for="g2">Yerçekimi İvmesi (m/s²)</label>
+                                    <input id="g2" type="number" class="modern-input" value="10" min="1" step="0.1">
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label" for="h2">Yükseklik (m)</label>
+                                    <input id="h2" type="number" class="modern-input" value="3" min="0.1" step="0.1">
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label" for="t2">Süre (s)</label>
+                                    <input id="t2" type="number" class="modern-input" value="10" min="1" step="0.1">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Buton Bölümü -->
+                        <div class="button-section">
+                            <button id="startBtn" class="modern-button btn-primary">
+                                ▶️ Simülasyonu Başlat
+                            </button>
+                            <button id="resetBtn" class="modern-button btn-secondary" disabled>
+                                🔄 Sıfırla
+                            </button>
+                            <button id="calcPowerBtn" class="modern-button btn-power" style="display: none;">
+                                ⚡ Güç Hesapla
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sağ Panel - Simülasyon Alanı -->
+            <div class="simulation-container" id="simulationContainer">
+                <div class="glass-card">
+                    <div class="simulation-header">
+                        <h2 class="simulation-title">🎯 Simülasyon Alanı</h2>
+                        <button id="fullscreenBtn" class="fullscreen-btn" title="Tam Ekran">
+                            ⛶
+                        </button>
+                    </div>
+                    
+                    <!-- Canvas Alanı -->
+                    <div class="canvas-container">
+                        <div class="canvas-wrapper">
+                            <div class="canvas-label">🚛 1. Forklift</div>
+                            <canvas id="forklift1" class="forklift-canvas" width="350" height="300"></canvas>
+                        </div>
+                        <div class="canvas-wrapper">
+                            <div class="canvas-label">🚚 2. Forklift</div>
+                            <canvas id="forklift2" class="forklift-canvas" width="350" height="300"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Zamanlayıcı -->
+                    <div class="timer-display" id="timerText">
+                        ⏱️ 0.0 sn
+                    </div>
+                    
+                    <!-- Sonuçlar -->
+                    <div class="results-container">
+                        <!-- Enerji Sonuçları -->
+                        <div class="result-section">
+                            <div class="section-title">⚡ Enerji (İş)</div>
+                            
+                            <div class="progress-item">
+                                <div class="progress-label">
+                                    <span class="progress-label-left">🚛 1. Forklift</span>
+                                    <span class="progress-label-right" id="energyLabel1">0 J</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill progress-energy-1" id="energyBar1" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="progress-item">
+                                <div class="progress-label">
+                                    <span class="progress-label-left">🚚 2. Forklift</span>
+                                    <span class="progress-label-right" id="energyLabel2">0 J</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill progress-energy-2" id="energyBar2" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="formula">Enerji (iş) : W = m × g × h</div>
+                        </div>
+                        
+                        <!-- Güç Sonuçları -->
+                        <div class="result-section">
+                            <div class="section-title">🔋 Güç</div>
+                            
+                            <div class="progress-item">
+                                <div class="progress-label">
+                                    <span class="progress-label-left">🚛 1. Forklift</span>
+                                    <span class="progress-label-right" id="powerLabel1">—</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill progress-power-1" id="powerBar1" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="progress-item">
+                                <div class="progress-label">
+                                    <span class="progress-label-left">🚚 2. Forklift</span>
+                                    <span class="progress-label-right" id="powerLabel2">—</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill progress-power-2" id="powerBar2" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="formula">Güç : P = W ÷ t</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tam Ekran Kontrolleri -->
+                    <div class="fullscreen-controls" id="fullscreenControls">
+                        <button id="fullscreenStartBtn" class="modern-button btn-primary">▶️ Başlat</button>
+                        <button id="fullscreenResetBtn" class="modern-button btn-secondary">🔄 Sıfırla</button>
+                        <button id="fullscreenPowerBtn" class="modern-button btn-power" style="display: none;">⚡ Güç Hesapla</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal - Kullanım Kılavuzu -->
+    <div class="modal-overlay" id="modalBg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">📚 Kullanım Kılavuzu</h2>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-grid">
+                    <div class="modal-section">
+                        <h3>🎯 Simülasyonun Amacı</h3>
+                        <p>Farklı parametrelerle yapılan iş (enerji) ve güç kavramları arasındaki ilişkiyi incelemek, aynı işin farklı sürelerde yapılmasının güce etkisini görselleştirmek amacıyla hazırlanmıştır.</p><br>
+                        
+						
+						<h3>Dikkat Edilmesi Gerekenler : </h3>
+<p>Yeni bir karşılaştırma yapmak için parametreleri değiştiriniz ve tekrar "Simülasyonu Başlat" butonuna basınız.
+Formüller ekranın sağında gösterilmektedir:<br>
+Enerji (iş): W = m·g·h<br>
+Güç: P = W / t</p><br>
+                        <h3>⚙️ Parametreler</h3>
+                        <p>Her iki Forklift için aşağıdaki değerleri ayarlayabilirsiniz:</p>
+                        <ul>
+                            <li><strong>Kütle (kg):</strong> Kaldırılacak yükün kütlesi</li>
+                            <li><strong>Yerçekimi İvmesi (m/s²):</strong> Yer çekimi kuvveti</li>
+                            <li><strong>Yükseklik (m):</strong> Yükün kaldırılacağı yükseklik</li>
+                            <li><strong>Süre (s):</strong> İşlemin tamamlanma süresi</li>
+                        </ul>
+                        
+                        <h3>📊 Formüller</h3>
+                        <ul>
+                            <li><strong>Enerji (İş):</strong> W = m × g × h</li>
+                            <li><strong>Güç:</strong> P = W ÷ t</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="modal-section">
+                        <h3>🎮 Kontroller</h3>
+                        <ul>
+                            <li><strong>Simülasyonu Başlat:</strong> Girilen parametrelere göre iki Forklift'in yüklerini yukarı kaldırmasını başlatır</li>
+                            <li><strong>Sıfırla:</strong> Simülasyon ve sonuçlar başlangıç durumuna döner</li>
+                            <li><strong>Güç Hesapla:</strong> Simülasyon tamamlandığında aktif olur ve güç değerlerini hesaplar</li>
+                        </ul>
+                        
+                        <h3>🔍 Gözlem Paneli</h3>
+                        <p>Animasyonlu Forklift'lerde yüklerin yukarıya doğru hareketini izleyebilirsiniz. Enerji ve güç çubukları, her iki Forklift için yapılan işin ve ortalama gücün büyüklüğünü karşılaştırmalı olarak gösterir.</p>
+                        
+                        <h3>✨ Özel Özellikler</h3>
+                        <ul>
+                            <li><strong>Tam Ekran Modu:</strong> ⛶ butonuna tıklayarak tam ekranda izleyebilirsiniz</li>
+                            <li><strong>Panel Daraltma:</strong> <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye-off "><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" x2="22" y1="2" y2="22"></line></svg>️ butonu ile kontrol panelini daraltabilirsiniz</li>
+                            <li><strong>Tam Ekrandan Çıkma:</strong> Tam ekrandan çıkmak için ESC tuşunu veya ekranın sağ üst kısmında yer alan "⚉" butonunu kullanın</li>
+                            <li><strong>Responsive Tasarım:</strong> Tüm cihazlarda uyumlu çalışır</li>
+                        </ul>
+                        
+                        <div style="background: rgba(0, 245, 255, 0.1); border: 1px solid rgba(0, 245, 255, 0.3); border-radius: 8px; padding: 16px; margin-top: 20px;">
+                            <strong style="color: var(--neon-cyan);">💡 İpucu:</strong> Farklı parametrelerle yapılan işlemlerde, aynı iş daha kısa sürede yapılırsa gücün artacağı gözlemlenebilir.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Loading Screen Management
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                document.getElementById('loadingScreen').classList.add('fade-out');
+                document.getElementById('mainContainer').classList.add('loaded');
+                
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').style.display = 'none';
+                }, 500);
+            }, 1500); // Show loading for at least 1.5 seconds
+        });
+
+        // Global Variables
+        let params = {};
+        let animationFrame, startTime, elapsed, maxTime = 0, simRunning = false, simDone = false;
+        let forkliftStates = [{ y: 0 }, { y: 0 }];
+        let inputElements = [];
+        let powerShown = false;
+        let isPanelCollapsed = false;
+        let isFullscreen = false;
+
+        // DOM Elements
+        const toggleControlPanel = document.getElementById('toggleControlPanel');
+        const controlPanelContent = document.getElementById('controlPanelContent');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const calcPowerBtn = document.getElementById('calcPowerBtn');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const simulationContainer = document.getElementById('simulationContainer');
+        const fullscreenControls = document.getElementById('fullscreenControls');
+        const fullscreenStartBtn = document.getElementById('fullscreenStartBtn');
+        const fullscreenResetBtn = document.getElementById('fullscreenResetBtn');
+        const fullscreenPowerBtn = document.getElementById('fullscreenPowerBtn');
+        const timerText = document.getElementById('timerText');
+
+        // Modal Functions
+        function openModal() {
+            document.getElementById('modalBg').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('modalBg').classList.remove('active');
+            document.body.style.overflow = 'unset';
+        }
+
+        // Utility Functions
+        function getInputs() {
+            params = {
+                mass: [+document.getElementById('mass1').value, +document.getElementById('mass2').value],
+                g: [+document.getElementById('g1').value, +document.getElementById('g2').value],
+                h: [+document.getElementById('h1').value, +document.getElementById('h2').value],
+                t: [+document.getElementById('t1').value, +document.getElementById('t2').value]
+            };
+        }
+
+        function resetBars() {
+            setBar('energyBar1', 0); setBar('energyBar2', 0);
+            setBar('powerBar1', 0); setBar('powerBar2', 0);
+            document.getElementById('energyLabel1').innerText = '0 J';
+            document.getElementById('energyLabel2').innerText = '0 J';
+            document.getElementById('powerLabel1').innerText = '—';
+            document.getElementById('powerLabel2').innerText = '—';
+            powerShown = false;
+        }
+
+        function setBar(id, percent) {
+            document.getElementById(id).style.width = Math.min(100, Math.max(0, percent)) + "%";
+        }
+
+        // Canvas Drawing Functions
+        function drawForklift(canvas, yEnd, yNow, mass, height) {
+            let ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            let yStart = canvas.height - 35;
+            
+            // Enhanced Grid background from second HTML
+            ctx.strokeStyle = "rgba(0, 245, 255, 0.1)";
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= canvas.width; i += 20) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+            for (let i = 0; i <= canvas.height; i += 20) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+            
+            // Ground
+            ctx.fillStyle = '#2D3748';
+            ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+            
+            // Forklift mast
+            ctx.strokeStyle = "#00F5FF";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(30, yStart);
+            ctx.lineTo(30, yEnd);
+            ctx.stroke();
+            
+            // Base platform
+            ctx.strokeStyle = "#0088CC";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(10, yStart);
+            ctx.lineTo(canvas.width - 10, yStart);
+            ctx.stroke();
+            
+            // Target line (dashed)
+            ctx.strokeStyle = "#33be7b";
+            ctx.setLineDash([4, 3]);
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(10, yEnd);
+            ctx.lineTo(canvas.width - 10, yEnd);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Forklift body with gradient (enhanced from second HTML)
+            const forkliftX = canvas.width / 2 - 30;
+            const forkliftWidth = 60;
+            const forkliftHeight = 30;
+            
+            const gradient = ctx.createLinearGradient(forkliftX, yStart - forkliftHeight, forkliftX, yStart);
+            gradient.addColorStop(0, '#00F5FF');
+            gradient.addColorStop(0.5, '#0EA5E9');
+            gradient.addColorStop(1, '#0284C7');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(forkliftX, yStart - forkliftHeight, forkliftWidth, forkliftHeight);
+            
+            // Forklift outline
+            ctx.strokeStyle = '#00F5FF';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(forkliftX, yStart - forkliftHeight, forkliftWidth, forkliftHeight);
+            
+            // Wheels (enhanced from second HTML)
+            ctx.fillStyle = '#1F2937';
+            ctx.strokeStyle = '#00F5FF';
+            ctx.lineWidth = 2;
+            
+            // Left wheel
+            ctx.beginPath();
+            ctx.arc(forkliftX + 10, yStart, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            // Right wheel
+            ctx.beginPath();
+            ctx.arc(forkliftX + forkliftWidth - 10, yStart, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            // Fork (lifting mechanism)
+            ctx.fillStyle = "#00F5FF";
+            ctx.fillRect(forkliftX + forkliftWidth - 5, yStart - forkliftHeight - 20, 10, 20);
+            
+            // Load box (enhanced from second HTML)
+            ctx.fillStyle = '#F97316';
+            ctx.strokeStyle = '#EA580C';
+            ctx.lineWidth = 2;
+            ctx.fillRect(forkliftX + forkliftWidth - 15, yNow - 23, 25, 16);
+            ctx.strokeRect(forkliftX + forkliftWidth - 15, yNow - 23, 25, 16);
+            
+            // Load text
+            ctx.font = "bold 10px Inter";
+            ctx.fillStyle = "#0D1117";
+            ctx.textAlign = "center";
+            ctx.fillText(mass + " kg", forkliftX + forkliftWidth - 2.5, yNow - 12);
+            
+            // Height indicator
+            ctx.font = "9px Inter";
+            ctx.fillStyle = "#00F5FF";
+            ctx.fillText(height + " m", canvas.width - 15, yEnd + 12);
+        }
+
+        // Animation Function
+        function animateSim() {
+            elapsed = (Date.now() - startTime) / 1000;
+            if (elapsed > maxTime) elapsed = maxTime;
+
+            let energyPercents = [0, 0];
+            let maxW = [0, 0];
+            let W_now = [0, 0];
+
+            for (let i = 0; i < 2; i++) {
+                let canvas = document.getElementById('forklift' + (i + 1));
+                let yStart = canvas.height - 35;
+                let yEnd = 25 + 23;
+                let loadHeight = 16;
+                let yTarget = yEnd + loadHeight;
+                let yNow;
+                let h_current;
+
+                if (elapsed < params.t[i]) {
+                    yNow = yStart - (yStart - yTarget) * (elapsed / params.t[i]);
+                    h_current = params.h[i] * (elapsed / params.t[i]);
+                } else {
+                    yNow = yTarget;
+                    h_current = params.h[i];
+                }
+
+                forkliftStates[i].y = yNow;
+                drawForklift(canvas, yEnd, forkliftStates[i].y, params.mass[i], params.h[i]);
+
+                maxW[i] = params.mass[i] * params.g[i] * params.h[i];
+                W_now[i] = params.mass[i] * params.g[i] * h_current;
+                
+                energyPercents[i] = (h_current / params.h[i]) * 100;
+                if (isNaN(energyPercents[i]) || !isFinite(energyPercents[i])) energyPercents[i] = 0;
+            }
+
+            setBar('energyBar1', energyPercents[0]);
+            setBar('energyBar2', energyPercents[1]);
+            document.getElementById('energyLabel1').innerText = W_now[0].toFixed(1) + ' J';
+            document.getElementById('energyLabel2').innerText = W_now[1].toFixed(1) + ' J';
+            
+            setBar('powerBar1', 0);
+            setBar('powerBar2', 0);
+            document.getElementById('powerLabel1').innerText = '—';
+            document.getElementById('powerLabel2').innerText = '—';
+            
+            timerText.innerText = '⏱️ ' + elapsed.toFixed(1) + ' sn';
+
+            if (elapsed < maxTime) {
+                animationFrame = requestAnimationFrame(animateSim);
+            } else {
+                simDone = true;
+                simRunning = false;
+                calcPowerBtn.style.display = 'block';
+                fullscreenPowerBtn.style.display = 'block';
+                resetBtn.disabled = false;
+                setBar('energyBar1', 100);
+                setBar('energyBar2', 100);
+                
+                // Add stopped state (red hover effect)
+                document.getElementById('forklift1').classList.add('stopped');
+                document.getElementById('forklift2').classList.add('stopped');
+                
+                // Remove stopped state after animation
+                setTimeout(() => {
+                    document.getElementById('forklift1').classList.remove('stopped');
+                    document.getElementById('forklift2').classList.remove('stopped');
+                }, 1000);
+            }
+        }
+
+        // Main Functions
+        function startSim() {
+            getInputs();
+            maxTime = Math.max(params.t[0], params.t[1]);
+            simRunning = true;
+            simDone = false;
+            powerShown = false;
+            forkliftStates = [{ y: 0 }, { y: 0 }];
+            
+            startBtn.disabled = true;
+            fullscreenStartBtn.disabled = true;
+            resetBtn.disabled = true;
+            calcPowerBtn.style.display = 'none';
+            fullscreenPowerBtn.style.display = 'none';
+            resetBars();
+            
+            inputElements.forEach(inp => inp.disabled = true);
+            
+            // Add running state (green hover effect)
+            document.getElementById('forklift1').classList.add('running');
+            document.getElementById('forklift2').classList.add('running');
+            
+            for (let i = 0; i < 2; i++) {
+                let canvas = document.getElementById('forklift' + (i + 1));
+                let yEnd = 25 + 23;
+                drawForklift(canvas, yEnd, canvas.height - 35, params.mass[i], params.h[i]);
+            }
+            
+            startTime = Date.now();
+            animationFrame = requestAnimationFrame(animateSim);
+        }
+
+        function resetSim() {
+            simRunning = false;
+            simDone = false;
+            powerShown = false;
+            cancelAnimationFrame(animationFrame);
+            
+            timerText.innerText = '⏱️ 0.0 sn';
+            startBtn.disabled = false;
+            fullscreenStartBtn.disabled = false;
+            resetBtn.disabled = true;
+            calcPowerBtn.style.display = 'none';
+            fullscreenPowerBtn.style.display = 'none';
+            resetBars();
+            
+            inputElements.forEach(inp => inp.disabled = false);
+            getInputs();
+            
+            // Remove all animation states
+            document.getElementById('forklift1').classList.remove('running', 'paused', 'stopped');
+            document.getElementById('forklift2').classList.remove('running', 'paused', 'stopped');
+            
+            for (let i = 0; i < 2; i++) {
+                let canvas = document.getElementById('forklift' + (i + 1));
+                let yEnd = 25 + 23;
+                drawForklift(canvas, yEnd, canvas.height - 35, params.mass[i], params.h[i]);
+            }
+        }
+
+        function calcAndShowResults() {
+            let W = [params.mass[0] * params.g[0] * params.h[0], params.mass[1] * params.g[1] * params.h[1]];
+            let P = [W[0] / params.t[0], W[1] / params.t[1]];
+            let maxP = Math.max(...P);
+            
+            setBar('energyBar1', 100);
+            setBar('energyBar2', 100);
+            
+            let step = 0, steps = 30;
+            let pStart = [0, 0];
+            let pTarget = [P[0] / maxP * 100, P[1] / maxP * 100];
+            
+            function animatePowerBars() {
+                step++;
+                let w1 = pStart[0] + (pTarget[0] - pStart[0]) * (step / steps);
+                let w2 = pStart[1] + (pTarget[1] - pStart[1]) * (step / steps);
+                
+                setBar('powerBar1', w1);
+                setBar('powerBar2', w2);
+                
+                if (step < steps) {
+                    setTimeout(animatePowerBars, 30);
+                }
+            }
+            
+            animatePowerBars();
+            document.getElementById('powerLabel1').innerText = P[0].toFixed(2) + ' W';
+            document.getElementById('powerLabel2').innerText = P[1].toFixed(2) + ' W';
+            powerShown = true;
+            calcPowerBtn.style.display = 'none';
+            fullscreenPowerBtn.style.display = 'none';
+        }
+
+        // Panel Toggle
+        toggleControlPanel.addEventListener('click', () => {
+            isPanelCollapsed = !isPanelCollapsed;
+            
+            if (isPanelCollapsed) {
+                controlPanelContent.classList.add('control-panel-collapsed');
+                toggleControlPanel.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+                toggleControlPanel.title = 'Paneli Genişlet';
+            } else {
+                controlPanelContent.classList.remove('control-panel-collapsed');
+                toggleControlPanel.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye-off"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" x2="22" y1="2" y2="22"></line></svg>`;
+                toggleControlPanel.title = 'Paneli Daralt';
+            }
+        });
+
+        // Fullscreen Toggle
+        fullscreenBtn.addEventListener('click', () => {
+            isFullscreen = !isFullscreen;
+            
+            if (isFullscreen) {
+                simulationContainer.classList.add('fullscreen');
+                fullscreenBtn.innerHTML = '⚉';
+                fullscreenBtn.title = 'Tam Ekrandan Çık';
+                document.body.style.overflow = 'hidden';
+            } else {
+                simulationContainer.classList.remove('fullscreen');
+                fullscreenBtn.innerHTML = '⛶';
+                fullscreenBtn.title = 'Tam Ekran';
+                document.body.style.overflow = 'unset';
+            }
+        });
+
+        // Event Listeners
+        startBtn.addEventListener('click', () => {
+            if (!simRunning) startSim();
+        });
+
+        resetBtn.addEventListener('click', resetSim);
+        calcPowerBtn.addEventListener('click', calcAndShowResults);
+
+        // Fullscreen controls
+        fullscreenStartBtn.addEventListener('click', () => {
+            if (!simRunning) startSim();
+        });
+        fullscreenResetBtn.addEventListener('click', resetSim);
+        fullscreenPowerBtn.addEventListener('click', calcAndShowResults);
+
+        // Keyboard Events
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (isFullscreen) {
+                    isFullscreen = false;
+                    simulationContainer.classList.remove('fullscreen');
+                    fullscreenBtn.innerHTML = '⛶';
+                    fullscreenBtn.title = 'Tam Ekran';
+                    document.body.style.overflow = 'unset';
+                }
+                if (document.getElementById('modalBg').classList.contains('active')) {
+                    closeModal();
+                }
+            }
+        });
+
+        // Modal close on background click
+        document.getElementById('modalBg').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('modalBg')) {
+                closeModal();
+            }
+        });
+
+        // Input change listeners
+        inputElements = Array.from(document.querySelectorAll('.modern-input'));
+        inputElements.forEach(inp => {
+            inp.addEventListener('input', () => {
+                if (!simRunning) resetSim();
+            });
+        });
+
+        // Initialize
+        window.onload = () => {
+            getInputs();
+            resetSim();
+        };
+    </script>
+</body>
+</html>
