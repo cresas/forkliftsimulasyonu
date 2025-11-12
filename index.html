@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* CSS Variables */
+        /* CSS Variables - Dark Theme (Default) */
         :root {
             --deep-space-blue: #0D1117;
             --night-purple: #18122B;
@@ -23,6 +23,25 @@
             --shadow-soft: rgba(0, 0, 0, 0.3);
             --shadow-medium: rgba(0, 0, 0, 0.4);
             --shadow-glow: rgba(0, 245, 255, 0.2);
+            
+            /* Theme transition */
+            --theme-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Light Theme Variables */
+        [data-theme="light"] {
+            --deep-space-blue: #F8FAFC;
+            --night-purple: #E2E8F0;
+            --neon-cyan: #0EA5E9;
+            --energetic-magenta: #A855F7;
+            --near-white: #1E293B;
+            --light-gray: #64748B;
+            --card-bg: rgba(255, 255, 255, 1.0);
+            --card-border: rgba(255,255,255, 1.0);
+			--glass-panel : #ffffff;
+            --shadow-soft: rgba(0, 0, 0, 0.1);
+            --shadow-medium: rgba(0, 0, 0, 0.15);
+            --shadow-glow: rgba(14, 165, 233, 0.2);
         }
 
         /* Reset and Base Styles */
@@ -39,6 +58,7 @@
             color: var(--near-white);
             min-height: 100vh;
 			overflow : auto;
+            transition: var(--theme-transition);
         }
 
         h1, h2, h3 {
@@ -166,7 +186,7 @@
         }
 
         .glass-panel {
-            background: rgba(0, 0, 0, 0.3);
+           
             border: 1px solid var(--card-border);
             border-radius: 12px;
             padding: 16px;
@@ -175,6 +195,10 @@
         }
 
         /* Glass Panel Hover Effect from second HTML */
+        .glass-panel {
+            transition: var(--theme-transition);
+        }
+
         .glass-panel:hover {
             transform: translateY(-2px);
             box-shadow: 
@@ -237,15 +261,15 @@
         }
 
         .modern-input {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgb(158 118 118 / 20%);
+            border: 1px solid rgb(30 30 30 / 20%);
             border-radius: 8px;
             color: var(--near-white);
             padding: 10px;
             width: 100%;
             font-size: 14px;
             font-weight: 500;
-            transition: all 0.2s ease;
+            transition: var(--theme-transition);
         }
 
         .modern-input:focus {
@@ -264,7 +288,7 @@
             border-radius: var(--radius);
             padding: 12px 20px;
             font-weight: 600;
-            transition: all 0.2s ease;
+            transition: var(--theme-transition);
             cursor: pointer;
             border: none;
             font-size: 17px;
@@ -357,7 +381,7 @@
             font-size: 17px;
             margin-bottom: 10px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: var(--theme-transition);
         }
 
         .help-btn:hover {
@@ -386,10 +410,21 @@
             font-weight: 600;
         }
 
-        .fullscreen-btn {
-            position: absolute;
-            top: 16px;
-            right: 16px;
+        .simulation-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .theme-toggle-btn {
             width: 40px;
             height: 40px;
             border-radius: 8px;
@@ -400,7 +435,57 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s ease;
+            transition: var(--theme-transition);
+            font-size: 18px;
+            z-index: 10;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .theme-toggle-btn:hover {
+            background: rgba(0, 245, 255, 0.1);
+            box-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .theme-toggle-btn .sun-icon,
+        .theme-toggle-btn .moon-icon {
+            position: absolute;
+            transition: var(--theme-transition);
+        }
+
+        .theme-toggle-btn .sun-icon {
+            opacity: 1;
+            transform: rotate(0deg) scale(1);
+        }
+
+        .theme-toggle-btn .moon-icon {
+            opacity: 0;
+            transform: rotate(-90deg) scale(0.8);
+        }
+
+        [data-theme="light"] .theme-toggle-btn .sun-icon {
+            opacity: 0;
+            transform: rotate(90deg) scale(0.8);
+        }
+
+        [data-theme="light"] .theme-toggle-btn .moon-icon {
+            opacity: 1;
+            transform: rotate(0deg) scale(1);
+        }
+
+        .fullscreen-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 1px solid var(--neon-cyan);
+            background: rgba(0, 0, 0, 0.7);
+            color: var(--neon-cyan);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--theme-transition);
             font-size: 18px;
             z-index: 10;
         }
@@ -432,7 +517,8 @@
             margin-bottom: 8px;
             padding: 4px 12px;
             border-radius: 6px;
-            background: rgba(0, 0, 0, 0.3);
+            /* background: rgba(0, 0, 0, 0.3); */
+            border: 1px solid #b6b6b6;
         }
 
         /* Enhanced Canvas with size and states from second HTML */
@@ -440,7 +526,7 @@
             border: 2px solid var(--card-border);
             border-radius: 12px;
             background: rgba(13, 17, 23, 0.9);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: var(--theme-transition);
             width: 350px;
             height: 300px;
         }
@@ -475,9 +561,9 @@
             font-family: 'Exo 2', sans-serif;
             margin: 16px 0;
             padding: 12px 20px;
-            background: rgba(0, 0, 0, 0.3);
+            /* background: rgba(0, 0, 0, 0.3); */
             border-radius: 12px;
-            border: 1px solid var(--card-border);
+            border: 1px solid rgb(0 0 0);
         }
 
         /* Results Panel */
@@ -488,8 +574,8 @@
         }
 
         .result-section {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--card-border);
+            /* background: rgba(0, 0, 0, 0.2); */
+            border: 1px solid rgb(216 199 199);
             border-radius: 12px;
             padding: 16px;
         }
@@ -526,10 +612,11 @@
         .progress-bar {
             height: 12px;
             border-radius: 6px;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgb(33 39 91 / 30%);
             overflow: hidden;
             position: relative;
             border: 1px solid var(--card-border);
+            transition: var(--theme-transition);
         }
 
         .progress-fill {
@@ -958,9 +1045,20 @@
                 <div class="glass-card">
                     <div class="simulation-header">
                         <h2 class="simulation-title">🎯 Simülasyon Alanı</h2>
-                        <button id="fullscreenBtn" class="fullscreen-btn" title="Tam Ekran">
-                            ⛶
-                        </button>
+                        <div class="header-controls">
+                            <button id="themeToggle" class="theme-toggle-btn" title="Tema Değiştir">
+                                <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="5"/>
+                                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                                </svg>
+                                <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                                </svg>
+                            </button>
+                            <button id="fullscreenBtn" class="fullscreen-btn" title="Tam Ekran">
+                                ⛶
+                            </button>
+                        </div>
                     </div>
                     
                     <!-- Canvas Alanı -->
@@ -1206,7 +1304,8 @@ Güç: P = W / t</p><br>
             }
             
             // Ground
-            ctx.fillStyle = '#2D3748';
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+            ctx.fillStyle = currentTheme === 'dark' ? '#2D3748' : '#CBD5E1';
             ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
             
             // Forklift mast
@@ -1535,8 +1634,45 @@ Güç: P = W / t</p><br>
             });
         });
 
+        // Theme Management
+        function getSystemTheme() {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+
+        function getSavedTheme() {
+            return localStorage.getItem('theme') || getSystemTheme();
+        }
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+        }
+
+        function initializeTheme() {
+            const savedTheme = getSavedTheme();
+            applyTheme(savedTheme);
+        }
+
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            const savedTheme = localStorage.getItem('theme');
+            if (!savedTheme) {
+                applyTheme(e.matches ? 'dark' : 'light');
+            }
+        });
+
+        // Theme toggle button event listener
+        document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+
         // Initialize
         window.onload = () => {
+            initializeTheme();
             getInputs();
             resetSim();
         };
